@@ -1,3 +1,10 @@
 theme: minima
 title: From models to molecules
 description: A cheminformatics blog
+
+# Navigation Links
+links:
+  - title: Posts
+    url: / # Keeps "Posts" accessible
+  - title: About
+    url: /about/
