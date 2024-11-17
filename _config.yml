@@ -3,4 +3,4 @@ title: Models to molecules
 description: A cheminformatics blog
 
 show_excerpts: true
-excerpt_separator: "<--more-->"
+excerpt_separator: "<--!more-->"
