@@ -6,7 +6,7 @@ date: 2024-11-10
 I've always been a fan of Free-Wilson Analysis. It just gets a lot of things _right_: it's easy-to-use, it helps you understand SAR better and it generate all potentially interesting combinations of your compounds that you might have missed. What's not to love? 
 
 
-Pat Walters has written up a wonderful tutorial on Free-Wilson Analysis over on [Practical Cheminformatics](https://colab.research.google.com/github/PatWalters/practical_cheminformatics_tutorials/blob/main/sar_analysis/free_wilson.ipynb), and I'll be addressing a few of the edge cases that the current code can use a hand with. You can find my notebook, which is a modified version of Pat's [here]() if you'd like to follow along.
+Pat Walters has written up a wonderful post on Free-Wilson Analysis over on [Practical Cheminformatics](https://practicalcheminformatics.blogspot.com/2018/05/free-wilson-analysis.html) with an excellent [notebook](https://colab.research.google.com/github/PatWalters/practical_cheminformatics_tutorials/blob/main/sar_analysis/free_wilson.ipynb), and I'll be addressing a few of the edge cases that the current code can use a hand with. You can find my notebook, which is a modified version of Pat's [here]() if you'd like to follow along.
 
 First, the edge cases. The current code struggles with molecules which have two R-groups on the same attachment point, or rings that attach to two attachment points simultaneously. I've drawn up three test cases that we use to verify that our improvements actually work:
 
