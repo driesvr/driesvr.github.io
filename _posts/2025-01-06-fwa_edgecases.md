@@ -13,7 +13,7 @@ First, the edge cases. The current code uses molzip to combine all the fragments
 ![Edge case examples](/assets/edgecases.PNG)
 
 
-The first thing we need to fix is the way two R-groups on the same attachment point are handled. By default RDKit groups these into one attachment, separated by a period, e.g. `C[*:3].C[*:3]`. This causes trouble when we will be molzipping these compound back together later on, because we will be using the same attachment point twice which RDKit (rightfully) doesn't appreciate. This [snippet by Greg](https://greglandrum.github.io/rdkit-blog/posts/2023-01-09-rgd-tutorial.html) changes the default behaviour to create a second attachment point on the double-substituted attachment points:
+The first thing we need to fix is the way two R-groups on the same attachment point are handled. By default RDKit groups these into one attachment, separated by a period, e.g. `C[*:3].C[*:3]`. This causes trouble when we will be molzipping these compound back together later on, because we will be using the same attachment point twice which RDKit (rightfully) doesn't appreciate. This [snippet by Greg](https://greglandrum.github.io/rdkit-blog/posts/2023-01-09-rgd-tutorial.html) changes the default behaviour to create a second attachment point on the double-substituted attachment points. Rather than `C[*:3].C[*:3]`, you should now get something like `C[*:3]` and `C[*:4]` in two separate R-group columns.
 ```python
 from rdkit.Chem import rdRGroupDecomposition
 ps = rdRGroupDecomposition.RGroupDecompositionParameters()
@@ -22,7 +22,7 @@ ps.allowMultipleRGroupsOnUnlabelled = True
 match, miss = RGroupDecompose(core_mol,df.mol.values,asSmiles=True, options=ps)
 ```
 
-That fixes issues with the double-substituted compounds, but we still run into trouble if we have rings that attach to two attachment points. If we have a ring that attaches to R1 and R5, RDKit will put that moiety in both the R1 and R5. This is logical behaviour, but it doesn't play nicely with molzip and the way we're currently laying out the different R-groups. There's two cases here that we will look at in more detail. Firstlly, combining the ring `CCC(C[*:1])[*:5]` at R5 with another substituent at R5 (or on R1 with another R1, for that matter) doesn't really work - there's no sensible molecule we could make here, so the best we can do is to skip it with the following code snippet:
+That fixes issues with the double-substituted compounds, but we still run into trouble if we have rings that attach to two attachment points. If we have a ring that attaches to R1 and R5, RDKit will put that moiety in both the R1 and R5. This is logical behaviour, but it doesn't play nicely with molzip and the way we're currently laying out the different R-groups. There's two cases here that we will look at in more detail. Firstly, combining the ring `CCC(C[*:1])[*:5]` at R5 with another substituent at R5 (or on R1 with another R1, for that matter) doesn't really work - there's no sensible molecule we could make here, so the best we can do is to skip it with the following code snippet:
 ```python
 import re
 def has_shared_number(string_tuple):
