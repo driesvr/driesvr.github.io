@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Matching Molecular Series with MatchMolSeries.py"
-date: 2025-02-10
+date: 2025-01-27
 ---
 "What else can we put on that position to improve potency?" If you've worked in small molecule discovery, you'll probably have heard some variation of 
 that question before. Replacing R-groups tends to be synthetically much easier than modifying the scaffold of a compound, and it can often dramatically
