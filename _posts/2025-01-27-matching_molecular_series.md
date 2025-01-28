@@ -5,15 +5,16 @@ date: 2025-01-27
 ---
 "What else can we put on that position to improve potency?" If you've worked in small molecule discovery, you'll probably have heard some variation of 
 that question before. Replacing R-groups tends to be synthetically much easier than modifying the scaffold of a compound, and it can often dramatically
-modulate not only the potency of a compound but also its other properties. It should come as no surprise then than executing libraries of R-group variations
+modulate not only the potency of a compound but also its other properties. It should come as no surprise then that executing libraries of R-group variations
 has become a staple of modern drug discovery. Such libraries result in rich data sets where a position is exhaustively varied but everything else is kept
 constant. Matched Molecular Series (MMS) were introduced by [Wawer and Bajorath](https://pubs.acs.org/doi/10.1021/jm200026b) in 2011 as a way to transfer knowledge from existing datasets to accelerate discovery.
 In this post we'll be implementing Matched Molecular Series in python.
 
 I worked together on this little project with my good friend (and software developer/data engineer) Alex Rosier. 
 First things first, the actual code can be found [here](https://github.com/driesvr/MatchMolSeries). The logic behind MMS is well described in the paper linked above, but the broad strokes of it are fairly intuitive.
-By finding other compound series where the SAR on a given position appears to track similarly, which can even be on different targets and/or scaffolds, we can use those other series to decide on what other groups we can try on a given position of our own scaffold.
+Let’s assume you’re a medical chemist working on a new series. You make a few analogues on a given position. The data comes back and you notice that the SAR is really similar to that of another set of compounds you worked once upon a time for a different target. Intriguing! You dust off your old ELN, looking for the most potent substituents you made back then and put them into synthesis. 
 
+In a nutshell, that's what MMS does, only systematically. By finding other compound series where the SAR on a given position appears to track similarly, typically on different targets and/or scaffolds, we can use those other series to decide on what other groups we can try on a given position of our own scaffold.
 
 On a practical level, we can break it down into a few steps.
 - Break apart all compounds into cores and fragments 
@@ -62,7 +63,7 @@ splitting_reactions = [
 ```
 These reactions should match the [Matsy](https://pubs.acs.org/doi/10.1021/jm500022q) implementation and break single acyclic bonds between either a ring atom and any other atom, 
 or a heteroatom bonded to a non-sp2 C aton. I'm terminating the bonds we broke with an `At` atom. That's somewhat arbitrary, but I like `At` here because it gives you _technically_ valid molecules that can be read into most cheminformatics software, 
-it's easy to recognize (at least, until someone tries to put one in a drug) and it _could_ be short for "attachment point". You could also terminate with dummy atoms. We can of course consider other fragmentationoptions here, like the classic 
+it's easy to recognize (at least, until someone tries to put one in a drug) and you could even imagine it to be short for "attachment point". You could also terminate with dummy atoms. We can of course consider other fragmentation options here, like the classic 
 [Hussain-Rea](https://pubs.acs.org/doi/10.1021/ci900450m) implementation that splits at any acyclic bond. Any fragmentation method will work here. As long as it splits the molecule into two parts,
 downstream steps will be the same. While we're at it, let's also define a reaction to combine the two fragments back together:
 
@@ -374,7 +375,7 @@ The optimisations provided by the polars library makes this entire process prett
 ```
 
 Right before we return the dataframe, we add some additional columns containing the attachment points of the R-group series on the core molecules to make the results more interpretable:
-self._get_attachment_point. As it's clearly marked with the `[At]` atomtype, we can just use `match = mol.GetSubstructMatch(Chem.MolFromSmarts('[*:1][At]'))` to find tha attachment point followed by 
+self._get_attachment_point. As it's clearly marked with the `[At]` atomtype, we can just use `match = mol.GetSubstructMatch(Chem.MolFromSmarts('[*:1][At]'))` to find the attachment point followed by 
 `mol.GetAtomWithIdx(match[0]).GetSmarts()` to get the SMARTS representation of the atom. 
 
 If all went well, we should now have a working implementation of matched molecular series. There's some additional QOL functionality in the  [package itself](https://github.com/driesvr/MatchMolSeries), but the key
@@ -408,8 +409,7 @@ functionality was covered in this post. All that's left now is to test everythin
 
 ```
 This test will check that the two additional R-groups in the reference dataset (in this case, an aniline and a trifluoromethoxy) can be retrieved based on the matching series of 
-F, Br and Cl substituents. It also checks that the potency values are associated with the correct R-groups. This finishes succesfully on my setup, so it looks like that all works! Let's see what we can retrieve when we check for such series in the bindingDB IC50 patent dataset.
-Let's put together a series of molecules that gains about a threefold in potency as we move to heavier halogens.
+F, Br and Cl substituents. It also checks that the potency values are associated with the correct R-groups. This finishes succesfully on my setup, so it looks like that all works! Let's see what we can retrieve when we check for such series in the bindingDB IC50 patent dataset. First, we put together a series of molecules that gains about a threefold in potency as we move to heavier halogens.
 
 ```python
 query_df = pd.DataFrame({
@@ -419,9 +419,9 @@ query_df = pd.DataFrame({
 })
 ```
 
-This query being a short series, we will get a lot of matches. Let't take a look at one of them in more detail. This series comes from patent US8765744, targeting 11-beta-hydroxysteroid dehydrogenase 1, 
-perhaps better known as cortisone reductase. The cRMSD of this series is 0.067, indicating that the trends in potency between the reference and query series are very similar: here we have 6.48 for the 
-F analog, 7.14 for the Cl and 7.59 for the Br. As such, many of the newly identified R-groups could be considered relevant compounds to try:
+This query is a short series and as such there's going to bea lot of matches. We'll take a look at one of them in more detail. This series comes from patent US8765744, targeting 11-beta-hydroxysteroid dehydrogenase 1, 
+perhaps better known as cortisone reductase. The cRMSD of this series is 0.067, indicating that the trends in potency between the reference and query series are very similar: the potencies are 6.48 for the 
+F analog, 7.14 for the Cl and 7.59 for the Br. That gives us some confidence that the series is indeed a good candidate for SAR transfer and we can look at the additional R-group in the reference dataset:
 
 | R-group SMARTS | Value |
 |----------------|-------|
@@ -436,6 +436,8 @@ F analog, 7.14 for the Cl and 7.59 for the Br. As such, many of the newly identi
 | FC(F)[At] | 7.06 |
 | FC(F)(F)O[At] | 7.24 |
 
-I'll close off this post with some recommended reading on MMS: [Original MMS paper](https://pubs.acs.org/doi/10.1021/jm200026b), [Ehmki and Kramer on metrics for SAR transfer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709),
+Browsing through the structures of the R-groups, we can see that they mostly are predominantly small apolar groups that wouldn't look out of place in most medchem programs. While none of them are substantially more potent than the bromine, the cyclopropyl and methoxy are roughly equipotent to the bromine and may be an interesting candidate for our hypothetical series. 
+
+That's it for today! We went through the basic concepts of matched molecular series, implemented a prototype in Python, and tested it on a small dataset. I'll close off this post with some recommended reading on MMS: [Original MMS paper](https://pubs.acs.org/doi/10.1021/jm200026b), [Ehmki and Kramer on metrics for SAR transfer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709),
 [Matsy paper](https://pubs.acs.org/doi/10.1021/jm500022q), and [MMS for ADME](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00269). That's it for now - hope you found this interesting and as always,
-please let me know if you spot any mistakes or better yet, submit a PR to fix them!
+please let me know if you spot any mistakes (or better yet, submit a PR to fix them)!
