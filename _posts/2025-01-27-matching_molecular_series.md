@@ -254,9 +254,9 @@ To do that, we group by core+assay (for both reference and query) and count the 
 In that same step, we also compute the cRMSD (a metric proposed by [Ehmki and Kramer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709) to track the similarity between the two series) between the potency vectors of the reference and query series. 
 It's computed as follows and provides an indication of how well trends align between the two series:
 
-$$
+\\\[
 \text{cRMSD} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left[ (x_i - \bar{x}) - (y_i - \bar{y}) \right]^2}
-$$
+\\\]
 
 We also track fragments in common and the potencies in both assay sets, here by casting them to a string and joining them with a pipe character. 
 Finally, we left join the reference and query datasets again on their fragment smiles, but select only those where the query fragment is missing: this set of un-matched fragments will contain - among other things - our new R-groups
