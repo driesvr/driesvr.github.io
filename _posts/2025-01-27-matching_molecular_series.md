@@ -254,9 +254,9 @@ To do that, we group by core+assay (for both reference and query) and count the 
 In that same step, we also compute the cRMSD (a metric proposed by [Ehmki and Kramer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709) to track the similarity between the two series) between the potency vectors of the reference and query series. 
 It's computed as follows and provides an indication of how well trends align between the two series:
 
-\[
+$$
 \text{cRMSD} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left[ (x_i - \bar{x}) - (y_i - \bar{y}) \right]^2}
-\]
+$$
 
 We also track fragments in common and the potencies in both assay sets, here by casting them to a string and joining them with a pipe character. 
 Finally, we left join the reference and query datasets again on their fragment smiles, but select only those where the query fragment is missing: this set of un-matched fragments will contain - among other things - our new R-groups
@@ -334,14 +334,11 @@ The optimisations provided by the polars library makes this entire process prett
                 pl.col('parent_potency_right').cast(pl.Utf8).str.join('|').alias('query_potencies'),
                 (pl.col('parent_potency') * pl.col('parent_potency_right')).sum().alias('potency_dot_product'),
                 (pl.col('parent_potency') ** 2).sum().alias('reference_potency_norm_sq'),
-                (pl.col('parent_potency_right') ** 2).sum().alias('query_potency_norm_sq')
+                (pl.col('parent_potency_right') ** 2).sum().alias('query_potency_norm_sq'),
+                ((pl.col('parent_potency') - pl.col('parent_potency').mean() - 
+                (pl.col('parent_potency_right') - pl.col('parent_potency_right').mean()))**2).mean().sqrt().alias('cRMSD')
             ])
             .filter(pl.col('series_length') >= min_series_length)
-            .with_columns([
-                (pl.col('potency_dot_product') / (pl.col('reference_potency_norm_sq').sqrt() * pl.col('query_potency_norm_sq').sqrt()))
-                .alias('potency_cosine_similarity')
-            ])
-            .drop(['potency_dot_product', 'reference_potency_norm_sq', 'query_potency_norm_sq'])
         )
 
         # Find additional fragments in reference set not present in query
@@ -361,7 +358,7 @@ The optimisations provided by the polars library makes this entire process prett
                 'query_core', 
                 'ref_assay', 
                 'query_assay', 
-                'potency_cosine_similarity', 
+                'cRMSD',
                 'series_length', 
                 'common_fragments',
                 'reference_potencies',
