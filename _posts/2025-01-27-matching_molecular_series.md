@@ -421,7 +421,7 @@ query_df = pd.DataFrame({
 
 This query is a short series and as such there's going to bea lot of matches. We'll take a look at one of them in more detail. This series comes from patent US8765744, targeting 11-beta-hydroxysteroid dehydrogenase 1, 
 perhaps better known as cortisone reductase. The cRMSD of this series is 0.067, indicating that the trends in potency between the reference and query series are very similar: the potencies are 6.48 for the 
-F analog, 7.14 for the Cl and 7.59 for the Br. That gives us some confidence that the series is indeed a good candidate for SAR transfer and we can look at the additional R-group in the reference dataset:
+F analog, 7.14 for the Cl and 7.59 for the Br. That gives us some confidence that the series is indeed a good candidate for SAR transfer and we can look at the additional R-groups in the reference dataset:
 
 | R-group SMARTS | Value |
 |----------------|-------|
@@ -439,5 +439,5 @@ F analog, 7.14 for the Cl and 7.59 for the Br. That gives us some confidence tha
 Browsing through the structures of the R-groups, we can see that they mostly are predominantly small apolar groups that wouldn't look out of place in most medchem programs. While none of them are substantially more potent than the bromine, the cyclopropyl and methoxy are roughly equipotent to the bromine and may be an interesting candidate for our hypothetical series. 
 
 That's it for today! We went through the basic concepts of matched molecular series, implemented a prototype in Python, and tested it on a small dataset. I'll close off this post with some recommended reading on MMS: [Original MMS paper](https://pubs.acs.org/doi/10.1021/jm200026b), [Ehmki and Kramer on metrics for SAR transfer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709),
-[Matsy paper](https://pubs.acs.org/doi/10.1021/jm500022q), and [MMS for ADME](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00269). That's it for now - hope you found this interesting and as always,
+[Matsy paper](https://pubs.acs.org/doi/10.1021/jm500022q), and [MMS for ADME](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00269). I hope you found this post interesting and as always,
 please let me know if you spot any mistakes (or better yet, submit a PR to fix them)!
