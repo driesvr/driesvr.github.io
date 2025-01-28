@@ -14,7 +14,7 @@ I worked together on this little project with my good friend (and software devel
 First things first, the actual code can be found [here](https://github.com/driesvr/MatchMolSeries). The logic behind MMS is well described in the paper linked above, but the broad strokes of it are fairly intuitive.
 Let’s assume you’re a medical chemist working on a new series. You make a few analogues on a given position. The data comes back and you notice that the SAR is really similar to that of another set of compounds you worked once upon a time for a different target. Intriguing! You dust off your old ELN, looking for the most potent substituents you made back then and put them into synthesis. 
 
-In a nutshell, that's what MMS does, only systematically. By finding other compound series where the SAR on a given position appears to track similarly, typically on different targets and/or scaffolds, we can use those other series to decide on what other groups we can try on a given position of our own scaffold.
+The above is in a nutshell what MMS does, except MMS enables you to do it systematically. By finding other compound series where the SAR on a given position appears to track similarly (typically on different targets and/or scaffolds) we can use those other series to decide on what other groups we can try on a given position of our own scaffold.
 
 On a practical level, we can break it down into a few steps.
 - Break apart all compounds into cores and fragments 
@@ -253,7 +253,7 @@ We start off by filtering out anything in either the reference or query dataset 
 We then merge reference and query datasets on their fragment SMILES, identifying fragments present in both datasets. That by itself isn't sufficient: we still need to make sure they belong to a long enough series. 
 To do that, we group by core+assay (for both reference and query) and count the number of fragments in each series. We then filter out any series with less than `min_series_length` fragments. 
 In that same step, we also compute the cRMSD (a metric proposed by [Ehmki and Kramer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709) to track the similarity between the two series) between the potency vectors of the reference and query series. 
-It's computed as follows and provides an indication of how well trends align between the two series:
+It provides an indication of how well trends align between the two series, with lower values indicating better similarity (and a cRMSD of 0 indicating that the SAR tracks perfectly). It's computed as follows:
 
 \\\[
 \text{cRMSD} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left[ (x_i - \bar{x}) - (y_i - \bar{y}) \right]^2}
