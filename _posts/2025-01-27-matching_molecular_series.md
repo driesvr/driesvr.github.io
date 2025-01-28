@@ -63,7 +63,7 @@ splitting_reactions = [
 These reactions should match the [Matsy](https://pubs.acs.org/doi/10.1021/jm500022q) implementation and break single acyclic bonds between either a ring atom and any other atom, 
 or a heteroatom bonded to a non-sp2 C aton. I'm terminating the bonds we broke with an `At` atom. That's somewhat arbitrary, but I like `At` here because it gives you _technically_ valid molecules that can be read into most cheminformatics software, 
 it's easy to recognize (at least, until someone tries to put one in a drug) and it _could_ be short for "attachment point". You could also terminate with dummy atoms. We can of course consider other fragmentationoptions here, like the classic 
-(Hussain-Rea)[https://pubs.acs.org/doi/10.1021/ci900450m] implementation that splits at any acyclic bond. Any fragmentation method will work here. As long as it splits the molecule into two parts,
+[Hussain-Rea](https://pubs.acs.org/doi/10.1021/ci900450m) implementation that splits at any acyclic bond. Any fragmentation method will work here. As long as it splits the molecule into two parts,
 downstream steps will be the same. While we're at it, let's also define a reaction to combine the two fragments back together:
 
 ```python
@@ -251,7 +251,13 @@ Coming back to the workflow we outlined at the beginning, we will need to write 
 We start off by filtering out anything in either the reference or query dataset that has less than `min_series_length` fragments: anything that doesn't belong to a long enough series can be safely discarded.
 We then merge reference and query datasets on their fragment SMILES, identifying fragments present in both datasets. That by itself isn't sufficient: we still need to make sure they belong to a long enough series. 
 To do that, we group by core+assay (for both reference and query) and count the number of fragments in each series. We then filter out any series with less than `min_series_length` fragments. 
-In that same step, we also compute the cosine similarity between the potency vectors of the reference and query series. This provides an indication of how well trends align between the two series. 
+In that same step, we also compute the cRMSD (a metric proposed by [Ehmki and Kramer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709) to track the similarity between the two series) between the potency vectors of the reference and query series. 
+It's computed as follows and provides an indication of how well trends align between the two series:
+
+\[
+\text{cRMSD} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left[ (x_i - \bar{x}) - (y_i - \bar{y}) \right]^2}
+\]
+
 We also track fragments in common and the potencies in both assay sets, here by casting them to a string and joining them with a pipe character. 
 Finally, we left join the reference and query datasets again on their fragment smiles, but select only those where the query fragment is missing: this set of un-matched fragments will contain - among other things - our new R-groups
 of interest. By grouping on assay+core again and merging that with the matched series dataframe, we make sure we only retain R-groups that actually belong to the same matched series, 
@@ -378,30 +384,30 @@ If all went well, we should now have a working implementation of matched molecul
 functionality was covered in this post. All that's left now is to test everything works and see if we can get some interesting suggestions for the next compounds to try!
 
 ```python
-def test_concatenation_order(self):
-    """
-    Verifies that the system correctly concatenates
-    molecules and their respective potency values
-    
-    """
-    ref_data = pd.DataFrame({
-        'smiles': ['c1ccccc1F', 'c1ccccc1Cl', 'c1ccccc1Br','c1ccccc1N', 'c1ccccc1OC(F)(F)F'],
-        'potency': [1.0, 2.0, 3.0, 4.0, 5.0],
-        'assay_col': ['assay1']*5
-    })
-    
-    query_data = pd.DataFrame({
-        'smiles': ['c1cnccc1F', 'c1cnccc1Cl', 'c1cnccc1Br'],
-        'potency': [1.0, 2.0, 3.0],
-        'assay_col': ['assay1']*3
-    })
-    self.mms.fragment_molecules(ref_data, assay_col='assay_col', query_or_ref='ref')
-    result = self.mms.query_fragments(query_data, min_series_length=3, assay_col='assay_col')
-    new_frags = result.new_fragments[0].split('|')
-    ref_potency = result.new_fragments_ref_potency[0].split('|')
-    print(new_frags, ref_potency)
-    self.assertEqual(new_frags.index('N[At]'), ref_potency.index('4.0')) 
-    self.assertEqual(new_frags.index('FC(F)(F)O[At]'), ref_potency.index('5.0')) 
+    def test_concatenation_order(self):
+        """
+        Verifies that the system correctly concatenates
+        molecules and their respective potency values
+        
+        """
+        ref_data = pd.DataFrame({
+            'smiles': ['c1ccccc1F', 'c1ccccc1Cl', 'c1ccccc1Br','c1ccccc1N', 'c1ccccc1OC(F)(F)F'],
+            'potency': [1.0, 2.0, 3.0, 4.0, 5.0],
+            'assay_col': ['assay1']*5
+        })
+        
+        query_data = pd.DataFrame({
+            'smiles': ['c1cnccc1F', 'c1cnccc1Cl', 'c1cnccc1Br'],
+            'potency': [1.0, 2.0, 3.0],
+            'assay_col': ['assay1']*3
+        })
+        self.mms.fragment_molecules(ref_data, assay_col='assay_col', query_or_ref='ref')
+        result = self.mms.query_fragments(query_data, min_series_length=3, assay_col='assay_col')
+        new_frags = result.new_fragments[0].split('|')
+        ref_potency = result.new_fragments_ref_potency[0].split('|')
+        print(new_frags, ref_potency)
+        self.assertEqual(new_frags.index('N[At]'), ref_potency.index('4.0')) 
+        self.assertEqual(new_frags.index('FC(F)(F)O[At]'), ref_potency.index('5.0')) 
 
 ```
 This test will check that the two additional R-groups in the reference dataset (in this case, an aniline and a trifluoromethoxy) can be retrieved based on the matching series of 
@@ -416,22 +422,23 @@ query_df = pd.DataFrame({
 })
 ```
 
+This query being a short series, we will get a lot of matches. Let't take a look at one of them in more detail. This series comes from patent US8765744, targeting 11-beta-hydroxysteroid dehydrogenase 1, 
+perhaps better known as cortisone reductase. The cRMSD of this series is 0.067, indicating that the trends in potency between the reference and query series are very similar: here we have 6.48 for the 
+F analog, 7.14 for the Cl and 7.59 for the Br. As such, many of the newly identified R-groups could be considered relevant compounds to try:
+
 | R-group SMARTS | Value |
 |----------------|-------|
-| O[At] | 6.31 |
-| CCO[At] | 7.3 |
-| NC(=O)[At] | 6.77 |
-| [At]c1cn[nH]c1 | 7.7 |
-| CO[At] | 8.0 |
-| Cn1nccc1[At] | 7.52 |
-| [At]c1ccncc1 | 7.52 |
-| C[At] | 7.1 |
-| [C-]#[N+][At] | 7.4 |
+| FC(F)O[At] | 7.09 |
+| Cn1ccc([At])cc1=O | 6.74 |
+| FC(F)(F)[At] | 7.09 |
+| [At]C1CC1 | 7.64 |
+| N#C[At] | 6.18 |
+| C[At] | 7.19 |
+| CO[At] | 7.46 |
+| CC(C)(C)[At] | 6.84 |
+| FC(F)[At] | 7.06 |
+| FC(F)(F)O[At] | 7.24 |
 
-The series above comes from patent US9012443, targeting Sodium channel protein type 9 subunit alpha, better known as NaV1.7. 
-I will note that the trends in this series are slightly different than our query - here we have 6.68 for the F analog, 7.3 for the Cl and 6.96 for the Br. 
-Nevertheless, the cosine similarity is quite high at 0.99, and many of the R-groups proposed herein could be considered as relevant compounds to try. Switching to a different similarity 
-metric may help identify even more relevant R-groups, as suggested by [Ehmki and Kramer ](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709) in their paper examining different similarity metrics for SAR transfer.
-I'll close off this post with some additional recommended reading on MMS: [Original MMS paper](https://pubs.acs.org/doi/10.1021/jm200026b), 
+I'll close off this post with some recommended reading on MMS: [Original MMS paper](https://pubs.acs.org/doi/10.1021/jm200026b), [Ehmki and Kramer on metrics for SAR transfer](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00709),
 [Matsy paper](https://pubs.acs.org/doi/10.1021/jm500022q), and [MMS for ADME](https://pubs.acs.org/doi/full/10.1021/acs.jcim.0c00269). That's it for now - hope you found this interesting and as always,
-please let me know if you spot any mistakes or better yet, submit a PR!
+please let me know if you spot any mistakes or better yet, submit a PR to fix them!
