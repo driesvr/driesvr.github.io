@@ -26,8 +26,7 @@ On a practical level, we can break it down into a few steps.
 - Those unmatched fragments are your new R-groups to try!
 
 
-Before we really dive into the actual MMS, it's a good idea to add some code to standardize all our molecules.This will help make sure we don't miss anything due to different ways of representing similar molecules.
-The code below does a decent job, but note that we are _not_ checking for tautomers here. Depending on the dataset, you may want to add tautomer canonicalization.
+Before we really dive into the actual MMS, it's a good idea to add some code to standardize all our molecules. This will help make sure we don't miss anything due to different ways of representing similar molecules. The code below does a decent job, but note that we are _not_ checking for tautomers here. Depending on the dataset, you may want to add tautomer canonicalization.
 
 ```python
     def _standardize_mol(mol: Chem.Mol, frag_remover: rdMolStandardize.FragmentRemover) -> Chem.Mol:
